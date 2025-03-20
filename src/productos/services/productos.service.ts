@@ -1,10 +1,10 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { CreateProductDTO, UpdateProductDTO } from 'src/dto/producto.dto';
-import { Producto } from 'src/entities/producto.entity';
+import { Producto } from '../entities/producto.entity';
+import { CreateProductDTO, UpdateProductDTO } from '../dto/producto.dto';
 
 @Injectable()
 export class ProductosService {
-  private idCont = 0;
+  private idCount = 0;
   private productos: Producto[] = [
     {
       id: 1,
@@ -27,9 +27,9 @@ export class ProductosService {
     return product;
   }
   create(payload: CreateProductDTO) {
-    this.idCont = this.idCont + 1;
+    this.idCount = this.idCount + 1;
     const newProduct = {
-      id: this.idCont,
+      id: this.idCount,
       ...payload,
     };
     this.productos.push(newProduct);

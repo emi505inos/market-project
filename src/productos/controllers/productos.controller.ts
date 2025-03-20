@@ -16,15 +16,6 @@ import { ProductosService } from '../services/productos.service';
 export class ProductosController {
   constructor(private productsSercvice: ProductosService) {}
 
-  // @Get()
-  // getProducts(
-  //   @Query('limit') limit = 100,
-  //   @Query('offset') offset = 0,
-  //   @Query('brand') brand = '',
-  // ) {
-  //   return this.productsSercvice.findAll();
-  // }
-
   @Get(':idProduct')
   @HttpCode(HttpStatus.ACCEPTED)
   getProduct(@Param('idProduct', ParseIntPipe) idProduct: string) {
