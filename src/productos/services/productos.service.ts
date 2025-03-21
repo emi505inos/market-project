@@ -1,58 +1,72 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { Producto } from '../entities/producto.entity';
-import { CreateProductDTO, UpdateProductDTO } from '../dto/producto.dto';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Producto } from '../entities/producto.entities';
+import { Categoria } from '../entities/categoria.entities';
+import { Fabricante } from '../entities/fabricante.entities';
 
 @Injectable()
 export class ProductosService {
-  private idCount = 0;
-  private productos: Producto[] = [
-    {
-      id: 1,
-      nombre: 'Producto 1',
-      descripcion: 'Descripcion del producto 1',
-      precio: 100,
-      stock: 10,
-      origen: 'Origen del producto 1',
-      imagen: 'Imagen del producto 1',
-    },
-  ];
+  constructor(
+    @InjectRepository(Producto) private productRepo: Repository<Producto>,
+    @InjectRepository(Categoria) private categRepo: Repository<Categoria>,
+    @InjectRepository(Fabricante) private fabRepo: Repository<Fabricante>,
+  ) {}
+
   findAll() {
-    return this.productos;
+    return this.productRepo.find({
+      relations: ['fabricante', 'categorias'],
+    });
   }
-  findOne(id: number) {
-    const product = this.productos.find((item) => item.id === id);
+
+  async findOne(id: number) {
+    const product = await this.productRepo.findOne({
+      where: { id },
+      relations: ['fabricante', 'categorias'],
+    });
     if (!product) {
-      throw new NotFoundException(`Product with id ${id} not found`);
+      throw new NotFoundException(`Product #${id} not found`);
     }
     return product;
   }
-  create(payload: CreateProductDTO) {
-    this.idCount = this.idCount + 1;
-    const newProduct = {
-      id: this.idCount,
-      ...payload,
-    };
-    this.productos.push(newProduct);
-    return newProduct;
-  }
-  update(id: number, payload: UpdateProductDTO) {
-    const product = this.findOne(id);
-    if (product) {
-      const index = this.productos.findIndex((item) => item.id === id);
-      this.productos[index] = {
-        ...product,
-        ...payload,
-      };
-      return this.productos[index];
-    }
-    return null;
-  }
+
   remove(id: number) {
-    const index = this.productos.findIndex((item) => item.id === id);
-    if (index === -1) {
-      throw new NotFoundException(`Product with id ${id} not found`);
+    this.productRepo.delete(id);
+    return { message: `Producto Id nº ${id} ha sido eliminado.` };
+  }
+
+  async removeCategoryByProduct(productId: number, categoryId: number) {
+    const producto = await this.productRepo.findOne({
+      where: { id: productId },
+      relations: ['categorias'],
+    });
+    if (!producto) {
+      throw new NotFoundException(`Product #${productId} not found`);
     }
-    this.productos.splice(index, 1);
-    return { message: `Product with id ${id} removed` };
+    producto.categorias = producto.categorias.filter(
+      (item) => item.id !== categoryId,
+    );
+    return this.productRepo.save(producto);
+  }
+
+  async addCategoryToProduct(productId: number, categoryId: number) {
+    const producto = await this.productRepo.findOne({
+      where: { id: productId },
+      relations: ['categorias'],
+    });
+
+    const category = await this.categRepo.findOne({
+      where: { id: categoryId },
+    });
+
+    if (!producto) {
+      throw new NotFoundException(`Product #${productId} not found`);
+    }
+    if (!category) {
+      throw new NotFoundException(`Category #${categoryId} not found`);
+    }
+
+    producto.categorias.push(category);
+    return this.productRepo.save(producto);
   }
 }

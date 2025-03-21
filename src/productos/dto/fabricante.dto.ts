@@ -1,31 +1,41 @@
-import { OmitType, PartialType } from '@nestjs/mapped-types';
+import { ApiProperty, OmitType, PartialType } from '@nestjs/swagger';
 import {
+  IsEmail,
   IsNotEmpty,
-  IsNumber,
-  IsPositive,
+  // IsNumber,
+  // IsPositive,
   IsString,
   IsUrl,
 } from 'class-validator';
 
-export class CreateFabricanteDTO {
-  @IsNumber()
-  @IsNotEmpty()
-  @IsPositive()
-  id: number;
+export class CreateManufacturersDTO {
+  // @ApiProperty({ description: 'Id del Fabricante' })
+  // @IsNumber()
+  // @IsNotEmpty()
+  // @IsPositive()
+  // readonly id: number;
+
+  @ApiProperty({ description: 'Nombre del Fabricante' })
   @IsString()
   @IsNotEmpty()
-  nombre: string;
+  readonly nombre: string;
+
+  @ApiProperty({ description: 'Direccion del Fabricante' })
   @IsString()
   @IsNotEmpty()
-  direccion: string;
+  readonly direccion: string;
+
+  @ApiProperty({ description: 'Email del Fabricante' })
   @IsString()
   @IsNotEmpty()
-  email: string;
+  @IsEmail()
+  readonly email: string;
+
+  @ApiProperty({ description: 'Imagen del Fabricante' })
   @IsUrl()
   @IsNotEmpty()
-  imagen: string;
+  readonly imagen: string;
 }
-
-export class UpdateFabricanteDTO extends PartialType(
-  OmitType(CreateFabricanteDTO, ['id']),
+export class UpdateManufacturersDTO extends PartialType(
+  OmitType(CreateManufacturersDTO, ['nombre']),
 ) {}

@@ -1,70 +1,74 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { Operador } from '../entities/operador.entity';
-import { Pedido } from '../entities/podido.entity';
+import { Client } from 'pg';
+// import { ConfigType } from '@nestjs/config';
+import { CreateOperatorDTO, UpdateOperatorDTO } from '../dtos/operador.dto';
+import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
 import { ProductosService } from 'src/productos/services/productos.service';
-import { CreateOperadorDTO, UpdateOperadorDTO } from '../dtos/operador.dto';
+import { Repository } from 'typeorm';
+// import config from 'src/config';
+// import { Pedido } from '../entities/pedido.entities';
+import { CompradoresService } from './compradores.service';
+import { Operador } from '../entities/operador.entities';
 
 @Injectable()
 export class OperadoresService {
-  private idCount = 0;
-  private operador: Operador[] = [
-    {
-      id: 1,
-      email: 'pedro@mail.com',
-      password: 'pedro1',
-      role: 'admin',
-    },
-  ];
-  constructor(private productsService: ProductosService) {}
+  constructor(
+    private productsService: ProductosService,
+    // @Inject(config.KEY) private configService: ConfigType<typeof config>,
+    private compradorService: CompradoresService,
+    @Inject('PG') private clientPg: Client,
+    @InjectRepository(Operador) private operatorRepo: Repository<Operador>,
+  ) {}
 
-  findAll() {
-    return this.operador;
+  async findAll() {
+    return this.operatorRepo.find({
+      relations: ['comprador'],
+    });
   }
-  findOne(id: number) {
-    const operator = this.operador.find((item) => item.id === id);
-    if (!operator) {
-      throw new NotFoundException(`Operator with id ${id} not found`);
+  async findOne(id: number) {
+    const operador = await this.operatorRepo.findOne({
+      where: { id },
+      relations: ['comprador'],
+    });
+    if (!operador) {
+      throw new NotFoundException(`Operador #${id} no encontrado`);
     }
-    return operator;
+    return operador;
+  }
+  async create(data: CreateOperatorDTO) {
+    const newOperador = this.operatorRepo.create(data);
+    if (data.compradorId) {
+      const buyer = await this.compradorService.findOne(data.compradorId);
+      newOperador.comprador = buyer;
+    }
+    return this.operatorRepo.save(newOperador);
+  }
+  async update(id: number, changes: UpdateOperatorDTO) {
+    const operador = await this.findOne(id);
+    const updOperador = this.operatorRepo.merge(operador, changes);
+    return this.operatorRepo.save(updOperador);
   }
 
-  getOrderByUser(id: number): Pedido {
-    const operador = this.findOne(id);
-    return {
-      date: new Date(),
-      operador,
-      products: this.productsService.findAll(),
-    };
-  }
-  create(payload: CreateOperadorDTO) {
-    this.idCount = this.idCount + 1;
-    const newOperator: Operador = {
-      id: this.idCount,
-      email: payload.email,
-      password: payload.password,
-      role: payload.role,
-    };
-    this.operador.push(newOperator);
-    return newOperator;
-  }
-  update(id: number, payload: UpdateOperadorDTO) {
-    const product = this.findOne(id);
-    if (product) {
-      const index = this.operador.findIndex((item) => item.id === id);
-      this.operador[index] = {
-        ...product,
-        ...payload,
-      };
-      return this.operador[index];
-    }
-    return null;
-  }
   remove(id: number) {
-    const index = this.operador.findIndex((item) => item.id === id);
-    if (index === -1) {
-      throw new NotFoundException(`Operator with id ${id} not found`);
-    }
-    this.operador.splice(index, 1);
-    return { message: `Operator with id ${id} removed` };
+    return this.operatorRepo.delete(id);
+  }
+
+  // async getOrderByUser(id: number): Promise<Pedido> {
+  //     const operador = await this.operatorRepo.findOne(id);
+  //     return {
+  //         date: new Date(),
+  //         operador,
+  //         producto: await this.productsService.findAll(),
+  //     };
+  // }
+  getTasks() {
+    return new Promise((resolve, reject) => {
+      this.clientPg.query('SELECT * FROM tareas', (err, res) => {
+        if (err) {
+          reject(err);
+        }
+        resolve(res.rows);
+      });
+    });
   }
 }

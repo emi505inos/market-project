@@ -1,17 +1,15 @@
-import { OmitType, PartialType } from '@nestjs/mapped-types';
-import { IsNotEmpty, IsNumber, IsPositive, IsString } from 'class-validator';
+import { ApiProperty, PartialType } from '@nestjs/swagger';
+import { IsNotEmpty, IsString, IsUrl } from 'class-validator';
 
 export class CreateCategoriaDTO {
-  @IsNumber()
-  @IsNotEmpty()
-  @IsPositive()
-  id: number;
-
+  @ApiProperty({ description: 'Nombre de la Categoria' })
   @IsString()
   @IsNotEmpty()
-  nombre: string;
+  readonly nombre: string;
+  @ApiProperty()
+  @IsUrl()
+  @IsNotEmpty()
+  readonly imagen: string;
 }
 
-export class UpdateCategoriaDTO extends PartialType(
-  OmitType(CreateCategoriaDTO, ['id']),
-) {}
+export class UpdateCategoriaDTO extends PartialType(CreateCategoriaDTO) {}
